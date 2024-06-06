@@ -49,7 +49,7 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin,PKPushRegistryDe
 
     public init(messenger: FlutterBinaryMessenger) {
         super.init()
-        if((getBundleName()?.contains("carechart")) != nil){
+        if(getBundleId() != nil && getBundleId()!.contains("carechart")){
             tenant = Tenant.Carechart
         }else{
             tenant = Tenant.Carepath
@@ -379,8 +379,8 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin,PKPushRegistryDe
     }
 }
 
- func getBundleName() -> String? {
-   return Bundle.main.object(forInfoDictionaryKey: "CFBundleName") as? String
+ func getBundleId() -> String? {
+   return Bundle.main.object(forInfoDictionaryKey: "CFBundleIdentifier") as? String
  }
 
 extension ISO8601DateFormatter {
