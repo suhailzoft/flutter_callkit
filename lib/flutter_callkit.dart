@@ -152,9 +152,13 @@ class FlutterCallkit {
   static Future setCredentials({
     required String clientId,
     required String refreshToken,
+    required String cognitoId,
   }) async {
-    return await _channel.invokeMethod(
-        "storeCredential", {"rToken": refreshToken, "clientID": clientId});
+    return await _channel.invokeMethod("storeCredential", {
+      "rToken": refreshToken,
+      "clientID": clientId,
+      "cognitoId": cognitoId,
+    });
   }
 
   static Future<bool> checkIsIosCallDeclined() async {
