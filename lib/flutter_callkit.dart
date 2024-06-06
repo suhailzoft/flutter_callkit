@@ -143,9 +143,15 @@ class FlutterCallkit {
     return null;
   }
 
-  static Future getVoipToken() async {
+  static Future<String?> getVoipToken() async {
     return await _channel.invokeMethod(
       "getVoipToken",
+    );
+  }
+
+  static Future<String?> getCachedProgram() async {
+    return await _channel.invokeMethod(
+      "getCachedProgram",
     );
   }
 
