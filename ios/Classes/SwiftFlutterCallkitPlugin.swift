@@ -10,11 +10,11 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
 
     @objc public private(set) static var sharedInstance: SwiftFlutterCallkitPlugin!
     let uuid = UUID()
-    var callRedirectKey: String!
-    var clientIdKey: String!
-    var rTokenKey: String!
-    var cognitoIdKey: String!
-    var programKey: String!
+    var callRedirectKey: String = "callRedirectPref"
+    var clientIdKey: String = "clientIdKey"
+    var rTokenKey: String = "rTokenKey"
+    var cognitoIdKey: String = "cognitoIdKey"
+    var programKey: String = "programKey"
     var deviceToken: String?
     var tenant: Tenant?
     var preferences = UserDefaults.standard
@@ -33,12 +33,31 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
     var callKitChannel: FlutterMethodChannel!
 
    func initKeys(){
-      preferences = UserDefaults.standard
-      callRedirectKey = "callRedirectPref"
-      clientIdKey = "clientIdKey"
-      rTokenKey = "rTokenKey"
-      cognitoIdKey = "cognitoIdKey"
-      programKey = "programKey"
+       let defaults = UserDefaults.standard
+       if let callRedirectKey = defaults.object(forKey: "callRedirectPrefState") as? String {
+           self.callRedirectKey = callRedirectKey
+       }
+       if let clientIdKey = defaults.object(forKey: "clientIdKeyState") as? String {
+           self.clientIdKey = clientIdKey
+       }
+      if let rTokenKey = defaults.object(forKey: "rTokenKeyState") as? String {
+           self.rTokenKey = rTokenKey
+       }
+      if let cognitoIdKey = defaults.object(forKey: "cognitoIdKeyState") as? String {
+          self.clientIdKey = cognitoIdKey
+      }
+      if let programKey = defaults.object(forKey: "programKeyState") as? String {
+          self.programKey = programKey
+      }
+    }
+
+    func saveState() {
+    let defaults = UserDefaults.standard
+    defaults.set(callRedirectKey, forKey: "callRedirectPrefState")
+    defaults.set(clientIdKey, forKey: "clientIdKeyState")
+    defaults.set(rTokenKey, forKey: "rTokenKeyState")
+    defaults.set(cognitoIdKey, forKey: "cognitoIdKeyState")
+    defaults.set(programKey, forKey: "programKeyState")
     }
 
     public static func sharePluginWithRegister(with registrar: FlutterPluginRegistrar) {
@@ -54,8 +73,20 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
 
     deinit {
         NotificationCenter.default.removeObserver(self, name: UIApplication.didBecomeActiveNotification, object: nil)
+         if #available(iOS 13.0, *) {
+               NotificationCenter.default.removeObserver(self, name: UIScene.willDeactivateNotification, object: nil)
+           } else {
+               NotificationCenter.default.removeObserver(self, name: UIApplication.willResignActiveNotification, object: nil)
+           }
+        NotificationCenter.default.removeObserver(self, name: UIScene.didActivateNotification, object: nil)
     }
+    @objc func handleDeviceLock() {
+    saveState()
+   }
 
+    @objc func handleDeviceUnlock() {
+    initKeys()
+    }
     public init(messenger: FlutterBinaryMessenger) {
         super.init()
         if (getBundleId() != nil && getBundleId()!.contains("carechart")) {
@@ -63,16 +94,23 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
         } else {
             tenant = Tenant.Carepath
         }
-        NotificationCenter.default.addObserver(self, selector: #selector(applicationDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
-    }
+          NotificationCenter.default.addObserver(self, selector: #selector(applicationDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
+        if #available(iOS 13.0, *) {
+          NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceLock), name: UIScene.willDeactivateNotification, object: nil)
+        } else {
+          NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceLock), name: UIApplication.willResignActiveNotification, object: nil)
+        }
+          NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceUnlock), name: UIScene.didActivateNotification, object: nil)
+     }
 
     private func shareHandlers(with registrar: FlutterPluginRegistrar) {
         callKitChannel = FlutterMethodChannel(name: "flutter_callkit_channel", binaryMessenger: registrar.messenger())
         let callKitEventChannel = FlutterEventChannel(name: "flutter_callkit_event_channel", binaryMessenger: registrar.messenger())
         callKitEventChannel.setStreamHandler(self)
-        initKeys()
+        saveState()
         initCallKit()
     }
+
 
     @objc func applicationDidBecomeActive() {
         self.checkAppStatus(uuid: uuid)
