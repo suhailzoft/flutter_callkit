@@ -85,7 +85,6 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
     func initCallKitChannelMethods(){
          callKitChannel.setMethodCallHandler({
              [self] (call: FlutterMethodCall, result:  @escaping FlutterResult) -> Void in
-                 NSLog("CP_channel_alive_test")
                  if (call.method == "callRedirect") {
                      if (self.preferences.string(forKey: callRedirectKey) == nil) {
                          result(false)
@@ -153,11 +152,9 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
         let rToken = self.preferences.string(forKey: self.rTokenKey)
         let clientId = self.preferences.string(forKey: self.clientIdKey)
         guard let payloadDict = payload.dictionaryPayload as? [String: Any] else {
-               print("Invalid payload format")
                return
            }
         if let program = payloadDict["program"] as? String {
-            print("Program Name: \(program)")
             UserDefaults.standard.set(program, forKey: self.programKey)
            }
         self.isCallEnded = false
@@ -289,7 +286,6 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
     public func callObserver(_ callObserver: CXCallObserver, callChanged call: CXCall) {
         var message = [String: Any]()
         if call.hasEnded && !self.isCallEnded {
-                   print("Call was manually rejected by the user.")
                    self.isCallDeclined = true
                    let rToken = self.preferences.string(forKey: self.rTokenKey)
                    let clientId = self.preferences.string(forKey: self.clientIdKey)
