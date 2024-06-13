@@ -32,34 +32,6 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
     var callObserver = CXCallObserver()
     var callKitChannel: FlutterMethodChannel!
 
-   func initKeys(){
-       let defaults = UserDefaults.standard
-       if let callRedirectKey = defaults.object(forKey: "callRedirectPrefState") as? String {
-           self.callRedirectKey = callRedirectKey
-       }
-       if let clientIdKey = defaults.object(forKey: "clientIdKeyState") as? String {
-           self.clientIdKey = clientIdKey
-       }
-      if let rTokenKey = defaults.object(forKey: "rTokenKeyState") as? String {
-           self.rTokenKey = rTokenKey
-       }
-      if let cognitoIdKey = defaults.object(forKey: "cognitoIdKeyState") as? String {
-          self.clientIdKey = cognitoIdKey
-      }
-      if let programKey = defaults.object(forKey: "programKeyState") as? String {
-          self.programKey = programKey
-      }
-    }
-
-    func saveState() {
-    let defaults = UserDefaults.standard
-    defaults.set(callRedirectKey, forKey: "callRedirectPrefState")
-    defaults.set(clientIdKey, forKey: "clientIdKeyState")
-    defaults.set(rTokenKey, forKey: "rTokenKeyState")
-    defaults.set(cognitoIdKey, forKey: "cognitoIdKeyState")
-    defaults.set(programKey, forKey: "programKeyState")
-    }
-
     public static func sharePluginWithRegister(with registrar: FlutterPluginRegistrar) {
         if (sharedInstance == nil) {
             sharedInstance = SwiftFlutterCallkitPlugin(messenger: registrar.messenger())
@@ -73,42 +45,19 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
 
     deinit {
         NotificationCenter.default.removeObserver(self, name: UIApplication.didBecomeActiveNotification, object: nil)
-         if #available(iOS 13.0, *) {
-               NotificationCenter.default.removeObserver(self, name: UIScene.willDeactivateNotification, object: nil)
-           } else {
-               NotificationCenter.default.removeObserver(self, name: UIApplication.willResignActiveNotification, object: nil)
-           }
-        NotificationCenter.default.removeObserver(self, name: UIScene.didActivateNotification, object: nil)
     }
-    @objc func handleDeviceLock() {
-    saveState()
-   }
 
-    @objc func handleDeviceUnlock() {
-    initKeys()
-    }
     public init(messenger: FlutterBinaryMessenger) {
         super.init()
-        if (getBundleId() != nil && getBundleId()!.contains("carechart")) {
-            tenant = Tenant.Carechart
-        } else {
-            tenant = Tenant.Carepath
-        }
-          NotificationCenter.default.addObserver(self, selector: #selector(applicationDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
-        if #available(iOS 13.0, *) {
-          NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceLock), name: UIScene.willDeactivateNotification, object: nil)
-        } else {
-          NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceLock), name: UIApplication.willResignActiveNotification, object: nil)
-        }
-          NotificationCenter.default.addObserver(self, selector: #selector(handleDeviceUnlock), name: UIScene.didActivateNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(applicationDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
      }
 
     private func shareHandlers(with registrar: FlutterPluginRegistrar) {
-        callKitChannel = FlutterMethodChannel(name: "flutter_callkit_channel", binaryMessenger: registrar.messenger())
-        let callKitEventChannel = FlutterEventChannel(name: "flutter_callkit_event_channel", binaryMessenger: registrar.messenger())
-        callKitEventChannel.setStreamHandler(self)
-        saveState()
-        initCallKit()
+            callKitChannel = FlutterMethodChannel(name: "flutter_callkit_channel", binaryMessenger: registrar.messenger())
+            let callKitEventChannel = FlutterEventChannel(name: "flutter_callkit_event_channel", binaryMessenger: registrar.messenger())
+            callKitEventChannel.setStreamHandler(self)
+            initCallKitChannelMethods()
+            initCallKit()
     }
 
 
@@ -117,6 +66,11 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
     }
 
     func initCallKit() {
+     if (getBundleId() != nil && getBundleId()!.contains("carechart")) {
+         tenant = Tenant.Carechart
+         } else {
+         tenant = Tenant.Carepath
+         }
         let voipRegistry = PKPushRegistry(queue: DispatchQueue.main)
         voipRegistry.desiredPushTypes = Set([PKPushType.voIP])
         voipRegistry.delegate = self
@@ -126,73 +80,69 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
         }
         provider = CXProvider(configuration: providerConfiguration)
         callObserver.setDelegate(self, queue: nil)
-        callKitChannel.setMethodCallHandler({
-            [self] (call: FlutterMethodCall, result:  @escaping FlutterResult) -> Void in
-            initKeys()
-            if (call.method == "callRedirect") {
-                    if(!self.isDeviceLocked()){
-                        if (self.preferences.string(forKey: callRedirectKey) == nil) {
-                            result(false)
-                        } else {
-                            let currentVal = self.preferences.string(forKey: callRedirectKey)
-                            if currentVal != nil {
-                                let dateFormatter = DateFormatter()
-                                dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ"
-                                let dt = dateFormatter.date(from: currentVal!) ?? Date()
-                                let curdate = Date()
-                                if (dt != nil && curdate < dt.addingTimeInterval(TimeInterval(1.0 * 60.0))) {
-                                    result(true)
-                                } else {
-                                    result(false)
-                                }
-                            }
-                            result(false)
-                        }
-                    }
-            } else if (call.method == "endCall") {
-                self.endCall(call: uuid)
-            } else if (call.method == "deleteCallPref") {
-                self.deleteCallPref()
-            } else if (call.method == "printData") {
-                NSLog("data_sent: \(call.arguments)")
-            } else if (call.method == "getCachedProgram") {
-                let program = self.preferences.string(forKey: self.programKey)
-                result(program)
-            } else if (call.method == "appState") {
-                let state = UIApplication.shared.applicationState
-                if state == .active {
-                    result("active")
-                } else if state == .inactive {
-                    result("inactive")
-                } else if state == .background {
-                    result("background")
-                }
-            }
-            else if (call.method == "storeCredential") {
-                let result = call.arguments as? [String: Any]
-                UserDefaults.standard.set(result?["rToken"], forKey: self.rTokenKey)
-                UserDefaults.standard.set(result?["clientID"], forKey: self.clientIdKey)
-                UserDefaults.standard.set(result?["cognitoId"], forKey: self.cognitoIdKey)
-                self.preferences.synchronize()
-            }
-            else
-             if (call.method == "checkCallAnswered") {
-                result(self.isCallAnswered)
-            } else if (call.method == "checkCallDeclined") {
-                result(self.isCallDeclined)
-            } else if (call.method == "getVoipToken") {
-                result(deviceToken)
-            } else
-            if (call.method == "setAppOpenedUsingCallKit") {
-                let result = call.arguments as! Bool
-                isAppOpenedUsingCallKit = result
-            }
-        })
     }
 
-    func isDeviceLocked() -> Bool {
-        let state = UIApplication.shared.applicationState
-        return state != .active
+    func initCallKitChannelMethods(){
+         callKitChannel.setMethodCallHandler({
+             [self] (call: FlutterMethodCall, result:  @escaping FlutterResult) -> Void in
+                 NSLog("CP_channel_alive_test")
+                 if (call.method == "callRedirect") {
+                     if (self.preferences.string(forKey: callRedirectKey) == nil) {
+                         result(false)
+                     } else {
+                         let currentVal = self.preferences.string(forKey: callRedirectKey)
+                         if currentVal != nil {
+                             let dateFormatter = DateFormatter()
+                             dateFormatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss.SSSZZZZZ"
+                             let dt = dateFormatter.date(from: currentVal!) ?? Date()
+                             let curdate = Date()
+                             if (dt != nil && curdate < dt.addingTimeInterval(TimeInterval(1.0 * 60.0))) {
+                                 result(true)
+                             } else {
+                                 result(false)
+                             }
+                         }
+                         result(false)
+                     }
+                 } else if (call.method == "endCall") {
+                     self.endCall(call: uuid)
+                 } else if (call.method == "deleteCallPref") {
+                     self.deleteCallPref()
+                 } else if (call.method == "printData") {
+                     NSLog("data_sent: \(call.arguments)")
+                 } else if (call.method == "getCachedProgram") {
+                     let program = self.preferences.string(forKey: self.programKey)
+                     result(program)
+                 } else if (call.method == "appState") {
+                     let state = UIApplication.shared.applicationState
+                     if state == .active {
+                         result("active")
+                     } else if state == .inactive {
+                         result("inactive")
+                     } else if state == .background {
+                         result("background")
+                     }
+                 }
+                 else if (call.method == "storeCredential") {
+                     let result = call.arguments as? [String: Any]
+                     UserDefaults.standard.set(result?["rToken"], forKey: self.rTokenKey)
+                     UserDefaults.standard.set(result?["clientID"], forKey: self.clientIdKey)
+                     UserDefaults.standard.set(result?["cognitoId"], forKey: self.cognitoIdKey)
+                     self.preferences.synchronize()
+                 }
+                 else
+                 if (call.method == "checkCallAnswered") {
+                     result(self.isCallAnswered)
+                 } else if (call.method == "checkCallDeclined") {
+                     result(self.isCallDeclined)
+                 } else if (call.method == "getVoipToken") {
+                     result(deviceToken)
+                 } else
+                 if (call.method == "setAppOpenedUsingCallKit") {
+                     let result = call.arguments as! Bool
+                     isAppOpenedUsingCallKit = result
+                 }
+            })
     }
     public func pushRegistry(_ registry: PKPushRegistry, didUpdate pushCredentials: PKPushCredentials, for type: PKPushType) {
         deviceToken = pushCredentials.token.reduce("", {$0 + String(format: "%02X", $1) })
