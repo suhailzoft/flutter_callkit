@@ -10,10 +10,6 @@ object CallkitConstants {
             "com.bayshore.flutter_callkit.ACTION_CALL_DECLINE"
     const val ACTION_CALL_ENDED =
             "com.bayshore.flutter_callkit.ACTION_CALL_ENDED"
-    const val ACTION_CALL_TOGGLE_MUTE =
-            "com.bayshore.flutter_callkit.ACTION_CALL_TOGGLE_MUTE"
-    const val ACTION_CALL_TOGGLE_HOLD =
-            "com.bayshore.flutter_callkit.ACTION_CALL_TOGGLE_HOLD"
     const val ACTION_CALL_TIMEOUT =
             "com.bayshore.flutter_callkit.ACTION_CALL_TIMEOUT"
     const val ACTION_CALL_CALLBACK =

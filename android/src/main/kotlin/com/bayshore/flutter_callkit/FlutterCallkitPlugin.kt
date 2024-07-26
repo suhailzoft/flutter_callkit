@@ -206,34 +206,6 @@ class FlutterCallkitPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
                     result.success("OK")
                 }
 
-                "muteCall" -> {
-                    val map = buildMap {
-                        val args = call.arguments
-                        if (args is Map<*, *>) {
-                            putAll(args as Map<String, Any>)
-                        }
-                    }
-                    sendEvent(CallkitConstants.ACTION_CALL_TOGGLE_MUTE, map)
-
-                    result.success("OK")
-                }
-
-                "holdCall" -> {
-                    val map = buildMap {
-                        val args = call.arguments
-                        if (args is Map<*, *>) {
-                            putAll(args as Map<String, Any>)
-                        }
-                    }
-                    sendEvent(CallkitConstants.ACTION_CALL_TOGGLE_HOLD, map)
-
-                    result.success("OK")
-                }
-
-                "isMuted" -> {
-                    result.success(false)
-                }
-
                 "endCall" -> {
                     val data = Data(call.arguments() ?: HashMap())
                     context?.sendBroadcast(
@@ -243,10 +215,6 @@ class FlutterCallkitPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
                         )
                     )
 
-                    result.success("OK")
-                }
-
-                "callConnected" -> {
                     result.success("OK")
                 }
 
@@ -275,16 +243,6 @@ class FlutterCallkitPlugin : FlutterPlugin, MethodCallHandler, ActivityAware,
 
                 "activeCalls" -> {
                     result.success(getDataActiveCallsForFlutter(context))
-                }
-
-                "getDevicePushTokenVoIP" -> {
-                    result.success("")
-                }
-
-                "silenceEvents" -> {
-                    val silence = call.arguments as? Boolean ?: false
-                    CallkitBroadcastReceiver.silenceEvents = silence
-                    result.success("")
                 }
 
                 "requestNotificationPermission" -> {

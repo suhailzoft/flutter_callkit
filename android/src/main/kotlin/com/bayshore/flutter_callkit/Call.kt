@@ -81,8 +81,6 @@ data class Data(val args: Map<String, Any?>) {
     var isOnHold: Boolean = (args["isOnHold"] as? Boolean) ?: false
     @JsonProperty("audioRoute")
     var audioRoute: Int = (args["audioRoute"] as? Int) ?: 1
-    @JsonProperty("isMuted")
-    var isMuted: Boolean = (args["isMuted"] as? Boolean) ?: false
 
     @JsonProperty("isShowFullLockedScreen")
     var isShowFullLockedScreen: Boolean = true

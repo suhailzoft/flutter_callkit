@@ -31,7 +31,10 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
     var timerCount: Int = 0
     var callObserver = CXCallObserver()
     var callKitChannel: FlutterMethodChannel!
-
+    var backgroundTask: UIBackgroundTaskIdentifier = .invalid
+    var stateRestorationFailed = false
+    var isDeviceLocked = false
+    
     public static func sharePluginWithRegister(with registrar: FlutterPluginRegistrar) {
         if (sharedInstance == nil) {
             sharedInstance = SwiftFlutterCallkitPlugin(messenger: registrar.messenger())
@@ -50,20 +53,58 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
     public init(messenger: FlutterBinaryMessenger) {
         super.init()
         NotificationCenter.default.addObserver(self, selector: #selector(applicationDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(deviceDidUnlock), name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(deviceWillLock), name: UIApplication.protectedDataWillBecomeUnavailableNotification, object: nil)
+        
      }
 
     private func shareHandlers(with registrar: FlutterPluginRegistrar) {
-            callKitChannel = FlutterMethodChannel(name: "flutter_callkit_channel", binaryMessenger: registrar.messenger())
-            let callKitEventChannel = FlutterEventChannel(name: "flutter_callkit_event_channel", binaryMessenger: registrar.messenger())
-            callKitEventChannel.setStreamHandler(self)
-            initCallKitChannelMethods()
-            initCallKit()
+        callKitChannel = FlutterMethodChannel(name: "flutter_callkit_channel", binaryMessenger: registrar.messenger())
+        let callKitEventChannel = FlutterEventChannel(name: "flutter_callkit_event_channel", binaryMessenger: registrar.messenger())
+        callKitEventChannel.setStreamHandler(self)
+        if(!isDeviceLocked){
+            self.initCallKitChannelMethods()
+            self.initCallKit()
+        }
     }
-
-
+    
     @objc func applicationDidBecomeActive() {
         self.checkAppStatus(uuid: uuid)
-    }
+        if backgroundTask != .invalid {
+           UIApplication.shared.endBackgroundTask(backgroundTask)
+           backgroundTask = .invalid
+        }
+        if stateRestorationFailed {
+           stateRestorationFailed = false
+        }
+     }
+    
+    @objc func deviceDidUnlock() {
+        isDeviceLocked = false
+        if stateRestorationFailed {
+           stateRestorationFailed = false
+        }
+     }
+    
+    @objc func deviceWillLock() {
+        isDeviceLocked = true
+     }
+    
+    func application(_ application: UIApplication, shouldRestoreApplicationState coder: NSCoder) -> Bool {
+        if application.isProtectedDataAvailable {
+            self.initCallKitChannelMethods()
+            self.initCallKit()
+            self.endCall(call: uuid)
+            return true
+        } else {
+            stateRestorationFailed = true
+            return false
+        }
+     }
+    
+    func application(_ application: UIApplication, shouldSaveApplicationState coder: NSCoder) -> Bool {
+            return true
+     }
 
     func initCallKit() {
      if (getBundleId() != nil && getBundleId()!.contains("carechart")) {
