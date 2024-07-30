@@ -48,6 +48,8 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
 
     deinit {
         NotificationCenter.default.removeObserver(self, name: UIApplication.didBecomeActiveNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
+        NotificationCenter.default.removeObserver(self, name: UIApplication.protectedDataWillBecomeUnavailableNotification, object: nil)
     }
 
     public init(messenger: FlutterBinaryMessenger) {
@@ -55,7 +57,7 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
         NotificationCenter.default.addObserver(self, selector: #selector(applicationDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(deviceDidUnlock), name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(deviceWillLock), name: UIApplication.protectedDataWillBecomeUnavailableNotification, object: nil)
-        
+
      }
 
     private func shareHandlers(with registrar: FlutterPluginRegistrar) {
@@ -67,7 +69,7 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
             self.initCallKit()
         }
     }
-    
+
     @objc func applicationDidBecomeActive() {
         self.checkAppStatus(uuid: uuid)
         if backgroundTask != .invalid {
@@ -78,23 +80,23 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
            stateRestorationFailed = false
         }
      }
-    
+
     @objc func deviceDidUnlock() {
+        self.initCallKitChannelMethods()
+        self.initCallKit()
+        self.endCall(call: uuid)
         isDeviceLocked = false
         if stateRestorationFailed {
            stateRestorationFailed = false
         }
      }
-    
+
     @objc func deviceWillLock() {
         isDeviceLocked = true
      }
-    
+
     func application(_ application: UIApplication, shouldRestoreApplicationState coder: NSCoder) -> Bool {
         if application.isProtectedDataAvailable {
-            self.initCallKitChannelMethods()
-            self.initCallKit()
-            self.endCall(call: uuid)
             return true
         } else {
             stateRestorationFailed = true
@@ -318,6 +320,26 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
                 self.provider.reportCall(with: call, endedAt: Date(), reason: .remoteEnded)
                 completion?(error)
         }
+    }
+
+    func endAllCalls(completion: ((Error?) -> Void)? = nil) {
+     let activeCalls = cxCallController.callObserver.calls
+     let group = DispatchGroup()
+     var finalError: Error?
+
+     for call in activeCalls {
+         group.enter()
+         endCall(call: call.uuid) { error in
+             if let error = error {
+                 finalError = error
+             }
+             group.leave()
+         }
+     }
+
+     group.notify(queue: .main) {
+         completion?(finalError)
+     }
     }
 
     public func providerDidReset(_ provider: CXProvider) {
