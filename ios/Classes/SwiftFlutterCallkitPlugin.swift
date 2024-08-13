@@ -32,7 +32,6 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
     var callObserver = CXCallObserver()
     var callKitChannel: FlutterMethodChannel!
     var backgroundTask: UIBackgroundTaskIdentifier = .invalid
-    var stateRestorationFailed = false
     var isDeviceLocked = false
     
     public static func sharePluginWithRegister(with registrar: FlutterPluginRegistrar) {
@@ -57,55 +56,41 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
         NotificationCenter.default.addObserver(self, selector: #selector(applicationDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(deviceDidUnlock), name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(deviceWillLock), name: UIApplication.protectedDataWillBecomeUnavailableNotification, object: nil)
-
+        
      }
 
     private func shareHandlers(with registrar: FlutterPluginRegistrar) {
         callKitChannel = FlutterMethodChannel(name: "flutter_callkit_channel", binaryMessenger: registrar.messenger())
         let callKitEventChannel = FlutterEventChannel(name: "flutter_callkit_event_channel", binaryMessenger: registrar.messenger())
         callKitEventChannel.setStreamHandler(self)
-        if(!isDeviceLocked){
+        if(!isDeviceLocked ){
             self.initCallKitChannelMethods()
             self.initCallKit()
         }
     }
-
+    
     @objc func applicationDidBecomeActive() {
         self.checkAppStatus(uuid: uuid)
         if backgroundTask != .invalid {
            UIApplication.shared.endBackgroundTask(backgroundTask)
            backgroundTask = .invalid
         }
-        if stateRestorationFailed {
-           stateRestorationFailed = false
-        }
      }
-
+    
     @objc func deviceDidUnlock() {
-        self.initCallKitChannelMethods()
-        self.initCallKit()
-        self.endCall(call: uuid)
         isDeviceLocked = false
-        if stateRestorationFailed {
-           stateRestorationFailed = false
-        }
      }
-
+    
     @objc func deviceWillLock() {
         isDeviceLocked = true
      }
-
+    
     func application(_ application: UIApplication, shouldRestoreApplicationState coder: NSCoder) -> Bool {
-        if application.isProtectedDataAvailable {
-            return true
-        } else {
-            stateRestorationFailed = true
             return false
-        }
      }
     
     func application(_ application: UIApplication, shouldSaveApplicationState coder: NSCoder) -> Bool {
-            return true
+            return false
      }
 
     func initCallKit() {
@@ -320,26 +305,6 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
                 self.provider.reportCall(with: call, endedAt: Date(), reason: .remoteEnded)
                 completion?(error)
         }
-    }
-
-    func endAllCalls(completion: ((Error?) -> Void)? = nil) {
-     let activeCalls = cxCallController.callObserver.calls
-     let group = DispatchGroup()
-     var finalError: Error?
-
-     for call in activeCalls {
-         group.enter()
-         endCall(call: call.uuid) { error in
-             if let error = error {
-                 finalError = error
-             }
-             group.leave()
-         }
-     }
-
-     group.notify(queue: .main) {
-         completion?(finalError)
-     }
     }
 
     public func providerDidReset(_ provider: CXProvider) {
