@@ -84,14 +84,6 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
     @objc func deviceWillLock() {
         isDeviceLocked = true
      }
-    
-    func application(_ application: UIApplication, shouldRestoreApplicationState coder: NSCoder) -> Bool {
-            return false
-     }
-    
-    func application(_ application: UIApplication, shouldSaveApplicationState coder: NSCoder) -> Bool {
-            return false
-     }
 
     func initCallKit() {
      if (getBundleId() != nil && getBundleId()!.contains("carechart")) {
