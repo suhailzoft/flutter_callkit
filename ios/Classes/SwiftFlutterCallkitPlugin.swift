@@ -32,7 +32,6 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
     var callObserver = CXCallObserver()
     var callKitChannel: FlutterMethodChannel!
     var backgroundTask: UIBackgroundTaskIdentifier = .invalid
-    var isDeviceLocked = false
     
     public static func sharePluginWithRegister(with registrar: FlutterPluginRegistrar) {
         if (sharedInstance == nil) {
@@ -47,15 +46,11 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
 
     deinit {
         NotificationCenter.default.removeObserver(self, name: UIApplication.didBecomeActiveNotification, object: nil)
-        NotificationCenter.default.removeObserver(self, name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
-        NotificationCenter.default.removeObserver(self, name: UIApplication.protectedDataWillBecomeUnavailableNotification, object: nil)
     }
 
     public init(messenger: FlutterBinaryMessenger) {
         super.init()
         NotificationCenter.default.addObserver(self, selector: #selector(applicationDidBecomeActive), name: UIApplication.didBecomeActiveNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(deviceDidUnlock), name: UIApplication.protectedDataDidBecomeAvailableNotification, object: nil)
-        NotificationCenter.default.addObserver(self, selector: #selector(deviceWillLock), name: UIApplication.protectedDataWillBecomeUnavailableNotification, object: nil)
         
      }
 
@@ -63,10 +58,8 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
         callKitChannel = FlutterMethodChannel(name: "flutter_callkit_channel", binaryMessenger: registrar.messenger())
         let callKitEventChannel = FlutterEventChannel(name: "flutter_callkit_event_channel", binaryMessenger: registrar.messenger())
         callKitEventChannel.setStreamHandler(self)
-        if(!isDeviceLocked ){
-            self.initCallKitChannelMethods()
-            self.initCallKit()
-        }
+        self.initCallKitChannelMethods()
+        self.initCallKit()
     }
     
     @objc func applicationDidBecomeActive() {
@@ -75,14 +68,6 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
            UIApplication.shared.endBackgroundTask(backgroundTask)
            backgroundTask = .invalid
         }
-     }
-    
-    @objc func deviceDidUnlock() {
-        isDeviceLocked = false
-     }
-    
-    @objc func deviceWillLock() {
-        isDeviceLocked = true
      }
 
     func initCallKit() {
