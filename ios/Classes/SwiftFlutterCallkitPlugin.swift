@@ -9,7 +9,7 @@ import PushKit
 public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryDelegate, CXProviderDelegate, CXCallObserverDelegate, FlutterStreamHandler {
 
     @objc public private(set) static var sharedInstance: SwiftFlutterCallkitPlugin!
-    let uuid = UUID()
+    var uuid: UUID?
     var callRedirectKey: String = "callRedirectPref"
     var clientIdKey: String = "clientIdKey"
     var rTokenKey: String = "rTokenKey"
@@ -20,7 +20,6 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
     var preferences = UserDefaults.standard
     var provider: CXProvider!
     let cxCallController = CXCallController()
-    let transaction = CXTransaction(action: CXEndCallAction(call: UUID()))
     var callState: String = CallKitState.onOffline
     private var sink: FlutterEventSink?
     var isCallEnded: Bool = false
@@ -63,7 +62,9 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
     }
     
     @objc func applicationDidBecomeActive() {
-        self.checkAppStatus(uuid: uuid)
+        if(uuid != nil){
+            self.checkAppStatus(uuid: uuid!)
+        }
         if backgroundTask != .invalid {
            UIApplication.shared.endBackgroundTask(backgroundTask)
            backgroundTask = .invalid
@@ -109,7 +110,9 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
                          result(false)
                      }
                  } else if (call.method == "endCall") {
-                     self.endCall(call: uuid)
+                     if(uuid != nil){
+                         self.endCall(call: uuid!)
+                     }
                  } else if (call.method == "deleteCallPref") {
                      self.deleteCallPref()
                  } else if (call.method == "printData") {
@@ -152,6 +155,7 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
         deviceToken = pushCredentials.token.reduce("", {$0 + String(format: "%02X", $1) })
     }
     public func pushRegistry(_ registry: PKPushRegistry,didReceiveIncomingPushWith payload: PKPushPayload, for type: PKPushType, completion: @escaping () -> Void) {
+        uuid = UUID()
         UserDefaults.standard.set(Date().iso8601withFractionalSeconds, forKey: self.callRedirectKey)
         self.preferences.synchronize()
         let rToken = self.preferences.string(forKey: self.rTokenKey)
@@ -176,14 +180,16 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
         provider.configuration.supportsVideo = true
         update.hasVideo = true
         provider.configuration.supportedHandleTypes = [.generic]
-        provider.reportNewIncomingCall(with: uuid, update: update, completion: {
+        provider.reportNewIncomingCall(with: uuid!, update: update, completion: {
             error in
             if let error = error {
                 print("Error: \(error)")
             } else {
                 self.isCallAnswered = false
                 if(clientId == ""){
-                    self.endCall(call: self.uuid)
+                    if(self.uuid != nil){
+                        self.endCall(call: self.uuid!)
+                    }
                 }else{
                     self.timerCount = 0
                     self.callState = CallKitState.onStartCall
@@ -210,7 +216,9 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
             }
         })
         completion()
-        self.checkAppStatus(uuid: self.uuid);
+        if(self.uuid != nil){
+            self.checkAppStatus(uuid: self.uuid!);
+        }
 
     }
     @objc func eventWith(timer: Timer!) {
@@ -254,7 +262,9 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
     func clearTimer(isEndCallNeeded: Bool){
         self.callState = CallKitState.onOffline
         if(isEndCallNeeded){
-            self.endCall(call: self.uuid)
+            if(self.uuid != nil){
+                self.endCall(call: self.uuid!)
+            }
         }
         self.timerCount = 0
         timer?.invalidate()
@@ -275,13 +285,14 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
         return nil
     }
     func endCall(call: UUID, completion: ((Error?) -> Void)? = nil) {
-        cxCallController.request(transaction) { error in
+            let transaction = CXTransaction(action: CXEndCallAction(call: uuid!))
+            cxCallController.request(transaction) { error in
                 self.timerCount = 0
                 self.isCallEnded = true
                 self.callState = CallKitState.onCallEnd
                 self.provider.reportCall(with: call, endedAt: Date(), reason: .remoteEnded)
                 completion?(error)
-        }
+            }
     }
 
     public func providerDidReset(_ provider: CXProvider) {
@@ -334,8 +345,10 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
             message["event"] = "\(CallKitState.onAnswerCall)"
             self.sink!(message)
         }
-        self.checkAppStatus(uuid: uuid);
-
+        if(uuid != nil){
+            self.checkAppStatus(uuid: uuid!);
+        }
+        action.fulfill()
     }
     public func provider(_ provider: CXProvider, perform action: CXEndCallAction) {
         self.timerCount = 0
@@ -351,6 +364,7 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
               self.sink!(message)
             }
         }
+        action.fulfill()
     }
 
     private func checkAppStatus(uuid: UUID){
