@@ -30,7 +30,6 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
     var timerCount: Int = 0
     var callObserver = CXCallObserver()
     var callKitChannel: FlutterMethodChannel!
-    var backgroundTask: UIBackgroundTaskIdentifier = .invalid
     
     public static func sharePluginWithRegister(with registrar: FlutterPluginRegistrar) {
         if (sharedInstance == nil) {
@@ -64,10 +63,6 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
     @objc func applicationDidBecomeActive() {
         if(uuid != nil){
             self.checkAppStatus(uuid: uuid!)
-        }
-        if backgroundTask != .invalid {
-           UIApplication.shared.endBackgroundTask(backgroundTask)
-           backgroundTask = .invalid
         }
      }
 
@@ -172,7 +167,6 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
         if state == .inactive {
            self.isAppOpenedUsingCallKit = true
            }
-        let handle = "+18772893997"
         let callerName = "\(tenant == Tenant.Carechart ? "Carechart" : "Carepath") clinician is calling you"
         provider.setDelegate(self, queue: nil)
         let update = CXCallUpdate()
