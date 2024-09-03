@@ -165,10 +165,6 @@ class FlutterCallkit {
     await _channel.invokeMethod("startCall", params.toJson());
   }
 
-  static Future endCall(String id) async {
-    await _channel.invokeMethod("endCall", {'id': id});
-  }
-
   static Future endAllCalls() async {
     await _channel.invokeMethod("endAllCalls");
   }
