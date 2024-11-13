@@ -201,6 +201,7 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
 
             }
         })
+        self.currentCallState = "connected"
         completion()
         self.checkAppStatus(uuid: self.uuid);
 
@@ -278,6 +279,7 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
                 self.provider.reportCall(with: uuid, endedAt: Date(), reason: .remoteEnded)
                 if let error = error {
                     print("Error ending call: \(error.localizedDescription)")
+                    self.isCallEndingRequestProgress = false
                     return
                 }
                 self.isCallEndingRequestProgress = false
@@ -332,6 +334,7 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
        }
 
     public func provider(_ provider: CXProvider, perform action: CXAnswerCallAction) {
+         self.currentCallState = "answered"
         self.isAppOpenedUsingCallKit = true
         self.isCallAnswered = true
         timer?.invalidate()
