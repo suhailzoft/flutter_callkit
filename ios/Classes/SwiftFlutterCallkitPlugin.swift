@@ -161,7 +161,7 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
         self.isCallEnded = false
         self.isCallDeclined = false
         let state = UIApplication.shared.applicationState
-        let callerName = "\(tenant == Tenant.Carechart ? "CareChart" : "Carepath") nurse is calling you"
+        let callerName = "\(tenant == Tenant.Carechart ? "CareChart" : program=="cancer" || program=="chronic-disease" || program=="elder-care" ? "Carepath" : "Mental Health") Clinician is calling you"
         provider.setDelegate(self, queue: nil)
         let update = CXCallUpdate()
         update.localizedCallerName = callerName
