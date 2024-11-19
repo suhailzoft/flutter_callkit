@@ -155,13 +155,14 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
         guard let payloadDict = payload.dictionaryPayload as? [String: Any] else {
                return
            }
-        if let program = payloadDict["program"] as? String {
+        let program = payloadDict["program"] as? String   
+        if let program = program as? String {
             UserDefaults.standard.set(program, forKey: self.programKey)
            }
         self.isCallEnded = false
         self.isCallDeclined = false
         let state = UIApplication.shared.applicationState
-        let callerName = "\(tenant == Tenant.Carechart ? "CareChart" : program=="cancer" || program=="chronic-disease" || program=="elder-care" ? "Carepath" : "Mental Health") Clinician is calling you"
+        let callerName = "\(tenant == Tenant.Carechart ? "CareChart" : program == "cancer" || program == "chronic-disease" || program == "elder-care" ? "Carepath" : "Mental Health") Clinician is calling you"
         provider.setDelegate(self, queue: nil)
         let update = CXCallUpdate()
         update.localizedCallerName = callerName
