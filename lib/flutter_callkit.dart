@@ -98,7 +98,7 @@ class FlutterCallkit {
     return await _channel.invokeMethod("printData", log);
   }
 
-  static Future getIosCallAcceptTime() async {
+  static Future getCallAcceptTime() async {
     return await LocalStorage.getCallAcceptTime();
   }
 
