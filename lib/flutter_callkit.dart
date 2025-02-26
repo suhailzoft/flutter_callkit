@@ -98,25 +98,25 @@ class FlutterCallkit {
     return await _channel.invokeMethod("printData", log);
   }
 
-  static Future getCallAcceptTime() async {
-    return await LocalStorage.getCallAcceptTime();
+  static Future getAndroidCallAcceptTime() async {
+    return await LocalStorage.getAndroidCallAcceptTime();
   }
 
-  static Future deleteIosCallAcceptTime() async {
-    return await LocalStorage.deleteCallAcceptTime();
+  static Future deleteAndroidCallAcceptTime() async {
+    return await LocalStorage.deleteAndroidCallAcceptTime();
   }
 
-  static Future setCallAcceptTime({required DateTime dateTime}) async {
-    return await LocalStorage.setCallAcceptTime(dateTime: dateTime);
+  static Future setAndroidCallAcceptTime({required DateTime dateTime}) async {
+    return await LocalStorage.setAndroidCallAcceptTime(dateTime: dateTime);
   }
 
   static Future<bool> checkIsCallConnecting() async {
     if (Platform.isIOS) {
-      final bool isConnecting = await isCallConnecting();
+      final bool isConnecting = await isIosCallConnecting();
       printLog(log: "$isConnecting");
       return isConnecting;
     } else {
-      final DateTime? dt = await LocalStorage.getCallAcceptTime();
+      final DateTime? dt = await LocalStorage.getAndroidCallAcceptTime();
       if (dt != null &&
           DateTime.now().isBefore(dt.add(const Duration(minutes: 1)))) {
         return true;
@@ -126,7 +126,7 @@ class FlutterCallkit {
     }
   }
 
-  static Future<bool> isCallConnecting() async {
+  static Future<bool> isIosCallConnecting() async {
     if (Platform.isIOS) {
       final val = await checkIsIosCallRedirect();
       if (val != null) {
