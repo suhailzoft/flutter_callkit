@@ -4,17 +4,17 @@ class LocalStorage {
   static const String callAcceptPref = "CALL_ACCEPT_PREF";
   static late SharedPreferences _shared;
 
-  static Future<void> setCallAcceptTime({required DateTime dateTime}) async {
+  static Future<void> setAndroidCallAcceptTime({required DateTime dateTime}) async {
     await initPref();
     await _shared.setString(callAcceptPref, dateTime.toIso8601String());
   }
 
-  static Future<void> deleteCallAcceptTime() async {
+  static Future<void> deleteAndroidCallAcceptTime() async {
     await initPref();
     await _shared.remove(callAcceptPref);
   }
 
-  static Future<DateTime?> getCallAcceptTime() async {
+  static Future<DateTime?> getAndroidCallAcceptTime() async {
     await initPref();
     return await _shared.reload().then((value) {
       final dt = _shared.get(callAcceptPref);
