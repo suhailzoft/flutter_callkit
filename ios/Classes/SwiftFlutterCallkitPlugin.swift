@@ -76,7 +76,7 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
         voipRegistry.desiredPushTypes = Set([PKPushType.voIP])
         voipRegistry.delegate = self
         let providerConfiguration = CXProviderConfiguration(localizedName: "\(tenant == Tenant.Carechart ? "Carechart" : "Carepath") Digital Health")
-        providerConfiguration.supportsVideo = false
+        providerConfiguration.supportsVideo = true
         providerConfiguration.supportedHandleTypes = [.generic]
         providerConfiguration.includesCallsInRecents = false
         providerConfiguration.maximumCallsPerCallGroup = 1
@@ -174,9 +174,11 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
         update.supportsHolding = false
         update.supportsGrouping = false
         update.supportsUngrouping = false
-        provider.configuration.supportsVideo = false
-        update.hasVideo = false
+        provider.configuration.supportsVideo = true
+        update.hasVideo = true
         provider.configuration.supportedHandleTypes = [.generic]
+        let handle = CXHandle(type: .generic, value: "clinician-call")
+        update.remoteHandle = handle
         provider.reportNewIncomingCall(with: uuid, update: update, completion: {
             error in
             if let error = error {
@@ -350,6 +352,11 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
         self.callState = CallKitState.onAnswerCall
         UserDefaults.standard.set(Date().iso8601withFractionalSeconds, forKey: self.callRedirectKey)
         self.preferences.synchronize()
+        DispatchQueue.main.async {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            // Use your deep link / universal link instead:
+        }
+    }
         if(self.sink != nil){
             var message = [String: Any]()
             message["event"] = "\(CallKitState.onAnswerCall)"
