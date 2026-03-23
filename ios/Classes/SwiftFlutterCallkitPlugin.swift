@@ -76,6 +76,11 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
         voipRegistry.desiredPushTypes = Set([PKPushType.voIP])
         voipRegistry.delegate = self
         let providerConfiguration = CXProviderConfiguration(localizedName: "\(tenant == Tenant.Carechart ? "Carechart" : "Carepath") Digital Health")
+        providerConfiguration.supportsVideo = false
+        providerConfiguration.supportedHandleTypes = [.generic]
+        providerConfiguration.includesCallsInRecents = false
+        providerConfiguration.maximumCallsPerCallGroup = 1
+        providerConfiguration.maximumCallGroups = 1
         if let appIconImage = UIImage(named: "CallKitIcon") {
             providerConfiguration.iconTemplateImageData = appIconImage.pngData()
         }
@@ -166,8 +171,11 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
         provider.setDelegate(self, queue: nil)
         let update = CXCallUpdate()
         update.localizedCallerName = callerName
-        provider.configuration.supportsVideo = true
-        update.hasVideo = true
+        update.supportsHolding = false
+        update.supportsGrouping = false
+        update.supportsUngrouping = false
+        provider.configuration.supportsVideo = false
+        update.hasVideo = false
         provider.configuration.supportedHandleTypes = [.generic]
         provider.reportNewIncomingCall(with: uuid, update: update, completion: {
             error in
@@ -372,9 +380,7 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
     private func checkAppStatus(uuid: UUID){
         let state = UIApplication.shared.applicationState
         if state == .active {
-        if(!isAppOpenedUsingCallKit){
             self.endCall(uuid: uuid)
-            }
         }
         else if state == .inactive {
 
