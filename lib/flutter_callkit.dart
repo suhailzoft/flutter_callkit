@@ -164,12 +164,30 @@ class FlutterCallkit {
   static Future<bool> checkIsLaunchedFromVoIP() async {
     if (kIsWeb || Platform.isAndroid) return false;
     try {
-      final result = await const MethodChannel(
-        'flutter_callkit_channel',
-      ).invokeMethod<bool>('getLaunchedFromVoIP');
+      final result = await _channel.invokeMethod<bool>('getLaunchedFromVoIP');
       return result ?? false;
     } catch (_) {
       return false;
+    }
+  }
+
+  static Future<bool> clearLaunchedFromVoIP() async {
+    if (kIsWeb || Platform.isAndroid) return true;
+    try {
+      final result = await _channel.invokeMethod<bool>('clearLaunchedFromVoIP');
+      return result ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  static Future<bool> checkIsProtectedDataAvailable() async {
+    if (kIsWeb || Platform.isAndroid) return true;
+    try {
+      final result = await _channel.invokeMethod<bool>('checkIsProtectedDataAvailable');
+      return result ?? true;
+    } catch (_) {
+      return true;
     }
   }
 }

@@ -63,8 +63,6 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
     }
     
     @objc func applicationDidBecomeActive() {
-         UserDefaults.standard.set(false, forKey: "launchedFromVoIP")
-         UserDefaults.standard.synchronize()
          self.checkAppStatus(uuid: uuid)
      }
 
@@ -148,11 +146,20 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
                  if (call.method == "setAppOpenedUsingCallKit") {
                      let result = call.arguments as! Bool
                      isAppOpenedUsingCallKit = result
-                 }
-                 else if (call.method == "getLaunchedFromVoIP") {
-                    let flag = UserDefaults.standard.bool(forKey: "launchedFromVoIP")
-                    result(flag)
-                 }
+                  } else if (call.method == "getLaunchedFromVoIP") {
+                     if !UIApplication.shared.isProtectedDataAvailable {
+                         result(false)
+                     } else {
+                         let flag = UserDefaults.standard.bool(forKey: "launchedFromVoIP")
+                         result(flag)
+                     }
+                  } else if (call.method == "clearLaunchedFromVoIP") {
+                      UserDefaults.standard.set(false, forKey: "launchedFromVoIP")
+                      UserDefaults.standard.synchronize()
+                      result(true)
+                  } else if (call.method == "checkIsProtectedDataAvailable") {
+                      result(UIApplication.shared.isProtectedDataAvailable)
+                  }
             })
     }
     public func pushRegistry(_ registry: PKPushRegistry, didUpdate pushCredentials: PKPushCredentials, for type: PKPushType) {
