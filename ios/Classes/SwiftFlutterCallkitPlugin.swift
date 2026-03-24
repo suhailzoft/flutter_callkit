@@ -63,7 +63,9 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
     }
     
     @objc func applicationDidBecomeActive() {
-            self.checkAppStatus(uuid: uuid)
+         UserDefaults.standard.set(false, forKey: "launchedFromVoIP")
+         UserDefaults.standard.synchronize()
+         self.checkAppStatus(uuid: uuid)
      }
 
     func initCallKit() {
@@ -147,12 +149,18 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
                      let result = call.arguments as! Bool
                      isAppOpenedUsingCallKit = result
                  }
+                 else if (call.method == "getLaunchedFromVoIP") {
+                    let flag = UserDefaults.standard.bool(forKey: "launchedFromVoIP")
+                    result(flag)
+                 }
             })
     }
     public func pushRegistry(_ registry: PKPushRegistry, didUpdate pushCredentials: PKPushCredentials, for type: PKPushType) {
         deviceToken = pushCredentials.token.reduce("", {$0 + String(format: "%02X", $1) })
     }
-    public func pushRegistry(_ registry: PKPushRegistry,didReceiveIncomingPushWith payload: PKPushPayload, for type: PKPushType, completion: @escaping () -> Void) {
+    public func pushRegistry(_ registry: PKPushRegistry, didReceiveIncomingPushWith payload: PKPushPayload, for type: PKPushType, completion: @escaping () -> Void) {
+        UserDefaults.standard.set(true, forKey: "launchedFromVoIP")
+        UserDefaults.standard.synchronize()
         UserDefaults.standard.set(Date().iso8601withFractionalSeconds, forKey: self.callRedirectKey)
         self.preferences.synchronize()
         let rToken = self.preferences.string(forKey: self.rTokenKey)

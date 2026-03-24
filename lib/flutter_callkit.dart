@@ -1,17 +1,18 @@
 import 'dart:async';
 import 'dart:io';
-
 import 'package:flutter/services.dart';
-
+import 'package:flutter/foundation.dart';
 import 'entities/entities.dart';
 import 'entities/enums.dart';
 import 'local_storage.dart';
 
 class FlutterCallkit {
-  static const MethodChannel _channel =
-      MethodChannel('flutter_callkit_channel');
-  static const EventChannel _eventChannel =
-      EventChannel('flutter_callkit_event_channel');
+  static const MethodChannel _channel = MethodChannel(
+    'flutter_callkit_channel',
+  );
+  static const EventChannel _eventChannel = EventChannel(
+    'flutter_callkit_event_channel',
+  );
 
   static Stream<CallEvent?> get onEvent =>
       _eventChannel.receiveBroadcastStream().map(_receiveCallEvent);
@@ -26,8 +27,9 @@ class FlutterCallkit {
 
   static Future<CallKitAppState> getAppState() async {
     final appState = await _channel.invokeMethod("appState");
-    return CallKitAppState.values
-        .firstWhere((element) => element.name == appState.toUpperCase());
+    return CallKitAppState.values.firstWhere(
+      (element) => element.name == appState.toUpperCase(),
+    );
   }
 
   static CallEvent? _receiveCallEvent(dynamic data) {
@@ -43,15 +45,11 @@ class FlutterCallkit {
   }
 
   static Future<String?> getVoipToken() async {
-    return await _channel.invokeMethod(
-      "getVoipToken",
-    );
+    return await _channel.invokeMethod("getVoipToken");
   }
 
   static Future<String?> getCachedProgram() async {
-    return await _channel.invokeMethod(
-      "getCachedProgram",
-    );
+    return await _channel.invokeMethod("getCachedProgram");
   }
 
   static Future setCredentials({
@@ -67,27 +65,19 @@ class FlutterCallkit {
   }
 
   static Future<bool> checkIsIosCallDeclined() async {
-    return await _channel.invokeMethod(
-      "checkCallDeclined",
-    );
+    return await _channel.invokeMethod("checkCallDeclined");
   }
 
   static Future<bool> checkIsIosCallAnswered() async {
-    return await _channel.invokeMethod(
-      "checkCallAnswered",
-    );
+    return await _channel.invokeMethod("checkCallAnswered");
   }
 
   static Future<bool?> checkIsIosCallRedirect() async {
-    return await _channel.invokeMethod(
-      "callRedirect",
-    );
+    return await _channel.invokeMethod("callRedirect");
   }
 
   static Future deleteIosCallRedirectValue() async {
-    return await _channel.invokeMethod(
-      "deleteCallPref",
-    );
+    return await _channel.invokeMethod("deleteCallPref");
   }
 
   static Future setAppOpenedUsingCallKit({required bool status}) async {
@@ -148,9 +138,7 @@ class FlutterCallkit {
   }
 
   static Future requestFullScreenNotificationPermission() async {
-    await _channel.invokeMethod(
-      "requestFullScreenNotificationPermission",
-    );
+    await _channel.invokeMethod("requestFullScreenNotificationPermission");
   }
 
   static Future showMissCallNotification(CallKitParams params) async {
@@ -171,5 +159,17 @@ class FlutterCallkit {
 
   static Future<dynamic> activeCalls() async {
     return await _channel.invokeMethod("activeCalls");
+  }
+
+  static Future<bool> checkIsLaunchedFromVoIP() async {
+    if (kIsWeb || Platform.isAndroid) return false;
+    try {
+      final result = await const MethodChannel(
+        'flutter_callkit_channel',
+      ).invokeMethod<bool>('getLaunchedFromVoIP');
+      return result ?? false;
+    } catch (_) {
+      return false;
+    }
   }
 }
