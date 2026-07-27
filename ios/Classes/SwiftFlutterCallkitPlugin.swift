@@ -233,39 +233,40 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
 
     }
     @objc func eventWith(timer: Timer!) {
-        let tokenResp = timer.userInfo as! [String : Any]
+        guard let tokenResp = timer.userInfo as? [String: Any],
+              let accessToken = tokenResp["AccessToken"] as? NSString,
+              let idToken = tokenResp["IdToken"] as? NSString else {
+            return
+        }
         let cognitoId = self.preferences.string(forKey: self.cognitoIdKey)
         let program = self.preferences.string(forKey: self.programKey)
-        NetworkRequest.init(tenant: self.tenant, bToken: tokenResp["AccessToken"] as! NSString, iToken: tokenResp["IdToken"] as! NSString).getCallInfo(
+        NetworkRequest.init(tenant: self.tenant, bToken: accessToken, iToken: idToken).getCallInfo(
             cognitoId: cognitoId,
             program: program,
             completion: { (jsonObject) -> () in
-                if(jsonObject != nil){
-                    let jsObject = jsonObject as! [String: Any]
-                    let jsCallInfo = jsonObject["callInfo"] as! [String: Any]
-                    let duration: Int = jsonObject["callRingDuration"] as? Int ?? 1
-                    if(jsCallInfo["callStatus"] as! String == "initiated"){
-                        if ( self.timerCount >= duration*60 ){
-                            var callInfo = [String:Any]()
-                            callInfo = jsonObject["callInfo"] as! [String:Any]
-                            if(self.callState == "\(CallKitState.onStartCall)"){
-                                let rToken = self.preferences.string(forKey: self.rTokenKey)
-                                let clientId = self.preferences.string(forKey: self.clientIdKey)
-                                NetworkRequest.init(tenant: self.tenant, bToken: tokenResp["AccessToken"] as! NSString, iToken: tokenResp["IdToken"] as! NSString).putStatus(meetingId: callInfo["meetingId"] as? NSString ?? "", encounterId: "\(callInfo["encounterId"])" as NSString, status: "missed",completion: { (jsonObject) -> () in
+                guard let callInfo = jsonObject["callInfo"] as? [String: Any],
+                      let callStatus = callInfo["callStatus"] as? String else {
+                    self.clearTimer(isEndCallNeeded: true)
+                    return
+                }
+                
+                let duration: Int = jsonObject["callRingDuration"] as? Int ?? 1
+                if(callStatus == "initiated"){
+                    if ( self.timerCount >= duration*60 ){
+                        if(self.callState == "\(CallKitState.onStartCall)"){
+                            let encounterId = callInfo["encounterId"].map(String.init(describing:)) ?? ""
+                            NetworkRequest.init(tenant: self.tenant, bToken: accessToken, iToken: idToken).putStatus(meetingId: callInfo["meetingId"] as? NSString ?? "", encounterId: encounterId as NSString, status: "missed",completion: { (jsonObject) -> () in
 
-                                })
-                            }
-                            self.clearTimer(isEndCallNeeded: true)
+                            })
                         }
-                    }
-                    else{
                         self.clearTimer(isEndCallNeeded: true)
                     }
-                    self.timerCount = self.timerCount+5
                 }
                 else{
                     self.clearTimer(isEndCallNeeded: true)
                 }
+                self.timerCount = self.timerCount+5
+
             },onError: { (err) -> () in
                 self.clearTimer(isEndCallNeeded: !err)
             })
@@ -327,23 +328,25 @@ public class SwiftFlutterCallkitPlugin: NSObject, FlutterPlugin, PKPushRegistryD
                    let cognitoId = self.preferences.string(forKey: self.cognitoIdKey)
                    let program = self.preferences.string(forKey: self.programKey)
             NetworkRequest.init(tenant: self.tenant, bToken: nil, iToken: nil).refreshToken(clientId: clientId, rToken: rToken,completion: { (jsonObj) -> () in
-                       let tokenResp = jsonObj["AuthenticationResult"] as! [String: Any]
-                NetworkRequest.init(tenant: self.tenant, bToken: tokenResp["AccessToken"] as! NSString, iToken: tokenResp["IdToken"] as! NSString).getCallInfo(
+                       guard let tokenResp = jsonObj["AuthenticationResult"] as? [String: Any],
+                             let accessToken = tokenResp["AccessToken"] as? NSString,
+                             let idToken = tokenResp["IdToken"] as? NSString else {
+                           return
+                       }
+                NetworkRequest.init(tenant: self.tenant, bToken: accessToken, iToken: idToken).getCallInfo(
                            cognitoId: cognitoId,
                            program: program,
                            completion: { (jsonObject) -> () in
-                               if(jsonObject != nil){
-                                   let duration: Int = jsonObject["callRingDuration"] as? Int ?? 1
-                                   var callInfo = [String:Any]()
-                                   callInfo = jsonObject["callInfo"] as! [String:Any]
-                                   if(self.callState == "\(CallKitState.onStartCall)"){
-                                       NetworkRequest.init(tenant: self.tenant,bToken: tokenResp["AccessToken"] as! NSString, iToken: tokenResp["IdToken"] as! NSString).putStatus(meetingId: callInfo["meetingId"] as? NSString ?? "", encounterId: "\(callInfo["encounterId"])" as NSString, status: "rejected",completion: { (jsonObject) -> () in
-
-                                       })
-                                   }
-                                   self.callState = CallKitState.onOffline
-
+                               guard let callInfo = jsonObject["callInfo"] as? [String: Any] else {
+                                   return
                                }
+                               if(self.callState == "\(CallKitState.onStartCall)"){
+                                   let encounterId = callInfo["encounterId"].map(String.init(describing:)) ?? ""
+                                   NetworkRequest.init(tenant: self.tenant,bToken: accessToken, iToken: idToken).putStatus(meetingId: callInfo["meetingId"] as? NSString ?? "", encounterId: encounterId as NSString, status: "rejected",completion: { (jsonObject) -> () in
+
+                                   })
+                               }
+                               self.callState = CallKitState.onOffline
 
                            },onError: { (_) -> () in
 
